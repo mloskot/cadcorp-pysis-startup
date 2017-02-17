@@ -23,7 +23,8 @@ For more details, check the Cadcorp SIS Desktop documentation about
 ## Quickstart
 
 ```
-sis_help()
+dir()               # List names, including startup.py ones
+sis_help(sis_help)  # Learn about sis_help() function
 ```
 
 ## License
