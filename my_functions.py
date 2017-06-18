@@ -7,7 +7,23 @@ This is free and unencumbered software released into the public domain.
 For more information, please refer to <http://unlicense.org>
 """
 from cadcorp import sis
-print('Importing', __file__)
+import random
+print('|- importing module', __file__)
+
+def replace_help(namespace):
+    def _help(*args, **kwds):
+        # because of how the console works. we need our own help() pager func.
+        # replace the bold function because it adds crazy chars
+        import pydoc
+        pydoc.getpager = lambda: pydoc.plainpager
+        pydoc.Helper.getline = lambda self, prompt: None
+        pydoc.TextDoc.use_bold = lambda self, text: text
+
+        pydoc.help(*args, **kwds)
+
+    namespace["help"] = _help
+
+replace_help(globals())
 
 def sis_version():
     """Returns string with SIS version and build numbers."""
@@ -56,10 +72,11 @@ def sis_help(needle=None, output='help'):
         if not needle and output == 'list':
             methods = sorted([m for m in sis_api.__dict__.items()])
         else:
-            methods = sorted([m for m in sis_api.__dict__.items()
-                              if (needle.lower()
-                                  if isinstance(needle, str) else needle.__name__.lower())
-                              in m[0].lower()], key=lambda m: m[0])
+            methods = sorted(
+                [m for m in sis_api.__dict__.items()
+                 if (needle.lower()
+                     if isinstance(needle, str) else needle.__name__.lower())
+                 in m[0].lower()], key=lambda m: m[0])
 
         for (name, method) in methods:
             if output is 'list':
@@ -67,3 +84,49 @@ def sis_help(needle=None, output='help'):
             else:
                 help(method)
                 print('-' * 50)
+
+
+def find_crs(needle):
+    """Searches for any Coordinate Reference System with name matching given string.
+    Examples:
+        >>> find_crs('pseudo-mercator')
+        WGS 84.Pseudo-Mercator (EPSG:3857)
+    """
+    prjs = sis.NolCatalog("APrj", False).split('\t')
+    for prj in prjs:
+        if needle.lower() in prj.lower():
+            epsg = 0
+            try:
+                epsg = sis.GetPrjCode(prj)
+            except sis.GisLinkError:
+                pass
+            print(prj, "(EPSG:%d)" % epsg)
+
+def random_points_mm(count, xmm, ymm, zmm):
+    """xmm, ymm, zmm -  pairs of min and max values for X, Y and Z
+
+    TODO: sis.Process will be much faster
+    """
+    print('"Generating', count, '"random points within X={}, Y={}, Z={}'.format(xmm, ymm, zmm))
+    for _ in range(0, count):
+        x = random.uniform(xmm[0], xmm[1])
+        y = random.uniform(ymm[0], ymm[1])
+        z = random.randint(zmm[0], zmm[1])
+        sis.CreatePoint(x, y, z, 'Star', 1, 1)
+
+def random_points(count):
+    """Generate random points in range of the current view extent.
+    """
+    ext = view_extent()
+    random_points_mm(count, (ext[0], ext[3]), (ext[1], ext[4]), (int(ext[2]), int(ext[5])))
+
+def split_extent(csv_ext):
+    """Splits '1,2,3,4,5,6' string to six separate values:
+    x1, y1, z1, x2, y2, z2 = SplitExtent('1,2,3,4,5,6')
+    """
+    return [float(x) for x in csv_ext.split(',')]
+
+def view_extent():
+    """Return current view extent via `sis.GetViewExtent`.
+    """
+    return split_extent(sis.GetViewExtent())
