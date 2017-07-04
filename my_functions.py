@@ -6,9 +6,10 @@ Author: Mateusz Loskot <mateusz@loskot.net>
 This is free and unencumbered software released into the public domain.
 For more information, please refer to <http://unlicense.org>
 """
+if '__file__' in globals():
+    print('|- importing module', __file__)
 from cadcorp import sis
 import random
-print('|- importing module', __file__)
 
 def replace_help(namespace):
     def _help(*args, **kwds):
@@ -130,3 +131,51 @@ def view_extent():
     """Return current view extent via `sis.GetViewExtent`.
     """
     return split_extent(sis.GetViewExtent())
+
+#
+# Selection
+#
+def selection_ids():
+    """Returns IDs of all selected items.
+    Dictionary mapping source dataset to selected items.
+    """
+    sis.CreateListFromSelection("selected")
+    details = sis.GetListDetails("selected").split(":")
+    sis.EmptyList("selected")
+    if not details or not details[0]:
+        #    raise RuntimeError("no items selected")
+        return {}
+    assert details and len(details) % 2 == 0
+    ids = {}
+    for i in range(0, len(details), 2):
+        ids[int(details[i])] = [int(x) for x in details[i + 1].split(",")]
+    assert ids
+    return ids
+
+#
+# Geometry Representation
+#
+def _gr(cmd, fmt, fmt_plus=False):
+    ids = selection_ids()
+    grs = []
+    if fmt_plus:
+        fmt += 100
+    for (ds_id, item_ids) in ids.items():
+        crs = sis.GetProperty(sis.SIS_OT_DATASET, ds_id, '_crs$')
+        for item_id in item_ids:
+            sis.OpenExistingDatasetItem(ds_id, item_id)
+            grs.append(cmd(crs, fmt, 0))
+            sis.CloseItem()
+    return grs
+
+def hexwkb(fmt_plus=False):
+    return _gr(sis.GetBlob, sis.SIS_BLOB_OGIS_HEXWKB, fmt_plus)
+
+def wkb(fmt_plus=False):
+    return _gr(sis.GetBlobB, sis.SIS_BLOB_OGIS_WKB, fmt_plus)
+
+def wkt(fmt_plus=False):
+    return _gr(sis.GetBlob, sis.SIS_BLOB_OGIS_WKT, fmt_plus)
+
+def gj(fmt_plus=False):
+    return _gr(sis.GetBlob, sis.SIS_BLOB_GEOJSON, fmt_plus)
