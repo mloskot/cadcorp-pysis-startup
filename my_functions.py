@@ -80,7 +80,7 @@ def sis_help(needle=None, output='help'):
                  in m[0].lower()], key=lambda m: m[0])
 
         for (name, method) in methods:
-            if output is 'list':
+            if output == 'list':
                 print(name)
             else:
                 help(method)
