@@ -17,6 +17,8 @@ import my_functions
 # Bind all public names from the module(s) in the local namespace for the current scope.
 from my_functions import *
 from geometry_representation import *
+from http import *
+from routing import *
 
 # Print startup info banner
 print("Python in Cadcorp SIS", sis_version())
