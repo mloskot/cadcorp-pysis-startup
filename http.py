@@ -1,7 +1,7 @@
 import urllib.parse
 from json import dumps
 
-def make_body(self, content):
+def make_body(content):
     """Return content as bytearray accepted body of SIS HTTP API request.
     """
     if isinstance(content, bytearray):
@@ -12,7 +12,7 @@ def make_body(self, content):
         return bytearray(dumps(content).encode('utf-8'))
     return bytearray(content)
 
-def make_url(self, url, params=None):
+def make_url(url, params=None):
     """Creates valid URL with new query string parameters or
     appended to existing query string.
     """
