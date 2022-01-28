@@ -153,6 +153,25 @@ def selection_ids():
     return ids
 
 #
+# Properties
+#
+def prop(name, find_item_id = None):
+    """name - name of property to be fetched from currently selected item(s)
+    """
+    ids = selection_ids()
+    values = []
+    for (ds_id, item_ids) in ids.items():
+        for item_id in item_ids:
+            sis.OpenExistingDatasetItem(ds_id, item_id)
+            value = sis.GetProperty(sis.SIS_OT_CURITEM, 0, name)
+            sis.CloseItem()
+            if find_item_id and find_item_id == item_id:
+                return value
+            else:
+                values.append(value)
+    return values
+
+#
 # Geometry Representation
 #
 def _gr(cmd, fmt, fmt_plus=False):
